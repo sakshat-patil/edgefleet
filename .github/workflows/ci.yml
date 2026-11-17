@@ -1,0 +1,55 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.23" }
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -race ./...
+
+  cv-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r cv-agent/requirements-dev.txt
+      - run: cd cv-agent && python -m pytest -q
+
+  firmware:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.2.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: host unit tests
+        run: cc -Wall -Wextra -Werror -Ifirmware/esp32-cam/main firmware/esp32-cam/main/motion.c firmware/esp32-cam/test/test_motion.c -o t && ./t
+      - name: idf.py build
+        shell: bash
+        run: |
+          . $IDF_PATH/export.sh
+          cd firmware/esp32-cam && idf.py set-target esp32 && idf.py build
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=infra/terraform fmt -check
+      - run: terraform -chdir=infra/terraform init -backend=false
+      - run: terraform -chdir=infra/terraform validate
+
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: { cmd: [control-plane, simulator, loadgen] }
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --build-arg CMD=${{ matrix.cmd }} -t edgefleet/${{ matrix.cmd }} .

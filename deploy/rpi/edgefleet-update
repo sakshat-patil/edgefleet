@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# A/B updater for the Pi CV agent. Installs a version into the inactive slot,
+# switches the `current` symlink, restarts, and reverts if the unit is not
+# healthy within 30s. Invoked by the agent on update_firmware/rollback_firmware.
+set -euo pipefail
+VERSION=$1 URL=${2:-}
+ROOT=/opt/edgefleet
+active=$(readlink "$ROOT/current" || echo "$ROOT/a")
+inactive=$ROOT/a; [[ "$active" == "$ROOT/a" ]] && inactive=$ROOT/b
+
+if [[ -n "$URL" ]]; then
+  rm -rf "$inactive" && mkdir -p "$inactive"
+  python3 -m venv "$inactive/venv"
+  "$inactive/venv/bin/pip" install --quiet "$URL"
+fi
+echo "$VERSION" > "$inactive/VERSION"
+ln -sfn "$inactive" "$ROOT/current.new" && mv -T "$ROOT/current.new" "$ROOT/current"
+sed -i "s/^EF_FIRMWARE_VERSION=.*/EF_FIRMWARE_VERSION=$VERSION/" /etc/edgefleet/agent.env
+systemctl restart edgefleet-agent
+sleep 30
+if ! systemctl is-active --quiet edgefleet-agent; then
+  logger -t edgefleet-update "version $VERSION unhealthy, reverting to $(cat "$active/VERSION")"
+  ln -sfn "$active" "$ROOT/current"
+  sed -i "s/^EF_FIRMWARE_VERSION=.*/EF_FIRMWARE_VERSION=$(cat "$active/VERSION")/" /etc/edgefleet/agent.env
+  systemctl restart edgefleet-agent
+  exit 1
+fi

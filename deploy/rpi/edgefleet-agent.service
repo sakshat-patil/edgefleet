@@ -1,0 +1,24 @@
+[Unit]
+Description=EdgeFleet CV agent
+After=network-online.target systemd-networkd-wait-online.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=edgefleet
+Group=video
+EnvironmentFile=/etc/edgefleet/agent.env
+ExecStart=/opt/edgefleet/current/venv/bin/python -m edgefleet_agent
+Restart=always
+RestartSec=3
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/edgefleet
+MemoryMax=768M
+CPUQuota=300%
+
+[Install]
+WantedBy=multi-user.target

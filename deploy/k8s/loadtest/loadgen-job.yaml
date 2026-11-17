@@ -1,0 +1,19 @@
+# Throughput test: 4 parallel pods, each targeting 3,000 events/sec for 10 min.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: loadgen
+  namespace: edgefleet
+spec:
+  parallelism: 4
+  completions: 4
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: loadgen
+          image: ACCOUNT.dkr.ecr.us-west-2.amazonaws.com/edgefleet/loadgen:1.0.0
+          args: ["-brokers", "edgefleet-kafka-bootstrap.kafka.svc:9092", "-devices", "500", "-rate", "3000", "-duration", "10m", "-workers", "8"]
+          resources:
+            requests: { cpu: "1", memory: 256Mi }

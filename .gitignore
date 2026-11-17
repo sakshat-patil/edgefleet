@@ -1,0 +1,15 @@
+/bin/
+*.test
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.terraform/
+*.tfstate*
+.terraform.lock.hcl
+firmware/esp32-cam/build/
+firmware/esp32-cam/managed_components/
+firmware/esp32-cam/sdkconfig
+firmware/esp32-cam/sdkconfig.old
+firmware/esp32-cam/dependencies.lock
+.env

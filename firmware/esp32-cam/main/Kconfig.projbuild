@@ -1,0 +1,20 @@
+menu "EdgeFleet"
+    config EF_WIFI_SSID
+        string "WiFi SSID"
+        default "edgefleet-cams"
+    config EF_WIFI_PASSWORD
+        string "WiFi password"
+        default ""
+    config EF_CONTROL_PLANE_URL
+        string "Control plane base URL"
+        default "http://10.20.0.1:8080"
+    config EF_EVENTS_URL
+        string "Kafka REST proxy URL for detection events"
+        default "http://10.20.0.1:8082/topics/detections"
+    config EF_DEVICE_TOKEN
+        string "Device bearer token"
+        default ""
+    config EF_HEARTBEAT_MS
+        int "Heartbeat interval (ms)"
+        default 5000
+endmenu

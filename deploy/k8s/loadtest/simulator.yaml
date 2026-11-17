@@ -1,0 +1,23 @@
+# N simulated cameras. 5 pods x 100 cameras = 500 devices.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulator
+  namespace: edgefleet
+spec:
+  replicas: 5
+  selector:
+    matchLabels: { app: simulator }
+  template:
+    metadata:
+      labels: { app: simulator }
+    spec:
+      containers:
+        - name: simulator
+          image: ACCOUNT.dkr.ecr.us-west-2.amazonaws.com/edgefleet/simulator:1.0.0
+          command: ["/bin/sh", "-c"]
+          # Pod name suffix keeps device IDs unique across replicas.
+          args:
+            - exec /app -n 100 -url http://control-plane.edgefleet.svc -events-per-sec 2 -kafka edgefleet-kafka-bootstrap.kafka.svc:9092 -groups lobby,parking,warehouse,loading-dock
+          resources:
+            requests: { cpu: 200m, memory: 128Mi }
